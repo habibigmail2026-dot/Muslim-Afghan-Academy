@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Global Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { return isSignedIn() && request.auth.token.email == 'habibigmail2026@gmail.com'; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Exam Validation Helper
+    function isValidExam(data) {
+      return data.keys().hasAll(['title', 'description', 'questionsCount', 'durationMinutes', 'status', 'createdAt']) &&
+        data.keys().size() >= 6 &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+        data.description is string && data.description.size() <= 2000 &&
+        data.questionsCount is number && data.questionsCount >= 0 &&
+        data.durationMinutes is number && data.durationMinutes > 0 &&
+        data.status in ['active', 'upcoming', 'closed'] &&
+        (data.get('date', '') is string) &&
+        data.createdAt is number;
+    }
+
+    // Exams Collection
+    match /exams/{examId} {
+      // Anyone signed in can read exams
+      allow get: if isSignedIn() && isValidId(examId);
+      allow list: if isSignedIn();
+
+      // Only admins can create, update, or delete
+      allow create: if isAdmin() && isValidId(examId) && isValidExam(incoming()) && incoming().createdAt == request.time.toMillis();
+      allow update: if isAdmin() && isValidId(examId) && isValidExam(incoming()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin() && isValidId(examId);
+    }
+  }
+}

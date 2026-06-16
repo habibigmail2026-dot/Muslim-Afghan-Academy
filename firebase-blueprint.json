@@ -1,0 +1,25 @@
+{
+  "entities": {
+    "Exam": {
+      "title": "Exam required for Online Learning Platform",
+      "description": "Information about an exam.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "questionsCount": { "type": "number" },
+        "durationMinutes": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "upcoming", "closed"] },
+        "date": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["title", "description", "questionsCount", "durationMinutes", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "exams/{examId}": {
+      "schema": { "$ref": "#/entities/Exam" },
+      "description": "Collection of all exams created by the admin."
+    }
+  }
+}
